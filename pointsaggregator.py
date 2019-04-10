@@ -46,8 +46,8 @@ def getGroupedPointOwners():
     print(points_df.printSchema)
     points_df.show(10)
     points_stats = points_df \
-        .groupBy("customerid") \
-        .agg(_sum("qty").alias("total qty")).orderBy(desc("total qty"))
+        .groupBy(["customerid", "typeid"]) \
+        .agg(_sum("qty").alias("total_qty")).orderBy(desc("total_qty"))
     points_stats.show(10)
 
     return points_stats
