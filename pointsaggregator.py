@@ -1,7 +1,7 @@
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession
-from pyspark.sql.types import DoubleType
-from pyspark.sql.functions import sum as _sum, desc
+from pyspark.sql.types import DoubleType, DateType, TimestampType
+from pyspark.sql.functions import sum as _sum, desc, to_date, from_utc_timestamp, from_unixtime
 import argparse
 
 # conf = SparkConf().setAppName('PointsAggregatorStandaloneApp')
@@ -42,13 +42,20 @@ def getGroupedPointOwners():
 
     points_df = spark.read.format("orc").load(files_directory)
 
+    # df modification
     points_df = points_df.withColumn("qty", points_df["qty"].cast(DoubleType()))
+    points_df = points_df.withColumn("period_full_date",
+                                     from_unixtime(points_df["period"] / 1000, 'yyyy-MM-dd hh:mm:ss'))
+    points_df = points_df.withColumn("period_year_month", from_unixtime(points_df["period"] / 1000, 'yyyy-MM'))
+
     print(points_df.printSchema)
     points_df.show(10)
+    # .groupBy(["period_year_month", "customerid"]) \
     points_stats = points_df \
-        .groupBy(["customerid", "typeid"]) \
-        .agg(_sum("qty").alias("total_qty")).orderBy(desc("total_qty"))
-    points_stats.show(10)
+        .groupBy(["period_year_month", "organisationid", "customerid", "typeid"]) \
+        .agg(_sum("qty").alias("total_qty")).orderBy(desc("period_year_month"))
+
+    points_stats.show(100)
 
     return points_stats
 
