@@ -1,7 +1,7 @@
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SparkSession, Window
 from pyspark.sql.types import DoubleType, DateType, TimestampType
-from pyspark.sql.functions import sum as _sum, desc, to_date, from_utc_timestamp, from_unixtime, trunc, add_months
+from pyspark.sql.functions import sum as _sum, desc, to_date, from_utc_timestamp, from_unixtime, to_timestamp, trunc, add_months
 import argparse
 
 # conf = SparkConf().setAppName('PointsAggregatorStandaloneApp')
@@ -76,9 +76,13 @@ def getGroupedPointOwners():
                                              'month')))
 
     points_df = points_df.withColumn('aggdate', add_months(points_df['month'], 1))
+    points_df = points_df.withColumn('aggdate_ts', to_timestamp(points_df['aggdate']))
+    points_df = points_df.withColumn('aggdate_date', points_df['month'].cast(DateType()))
     points_df = points_df.withColumn("qty", points_df["cumulativeSum"])
 
-    points_df = points_df.drop(['cumulativeSum', 'sum(qty)', 'month'])
+    points_df = points_df.drop('cumulativeSum')
+    points_df = points_df.drop('sum(qty)')
+    points_df = points_df.drop('month')
 
     points_df.show(100)
 
